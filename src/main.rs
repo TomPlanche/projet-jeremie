@@ -16,6 +16,8 @@ use std::{
 };
 use std::collections::HashMap;
 use edit_distance::edit_distance;
+use clap::{Parser};
+
 // Variables  =========================================================================== Variables
 const ROOT_DIR: &str = "/Users/tom_planche/Desktop/Prog/Rust/projet-jeremie";
 
@@ -31,6 +33,26 @@ const TOWNS_TO_SEARCH: [&str; 3] = [
     "Cambrai",
     "Haynaut",
 ];
+
+// Cli parser
+#[derive(Parser)]
+#[command(about = "Small script that will seek the occurences of the needed strings in a file.")]
+#[command(author = "Tom Planche <tomplanche.fr|github.com/tomPlanche>")]
+#[command(help_template = "{about}\nMade by: {author}\n\nUSAGE:\n{usage}\n\n{all-args}\n")]
+#[command(name = "find-occurences")]
+struct Cli {
+    /// File to read
+    /// Optional 'file' argument, default value is './src/outputs/results.txt'.
+    #[arg(short, long, default_value = "./src/outputs/results.txt")]
+    file: String,
+
+    /// Debug mode
+    /// Optional 'debug' argument.
+    #[arg(short, long)]
+    debug: bool,
+
+}
+
 // Functions  =========================================================================== Functions
 ///
 /// # find_approx_match
@@ -76,30 +98,33 @@ fn find_approx_match(
 
     smallest_match.0 <= max_distance
 }
+
 // Main  ====================================================================================  Main
 fn main() {
     // Change the current directory
     std::env::set_current_dir(ROOT_DIR).expect("Error while changing the current directory");
 
+    let cli = Cli::parse();
+
     // Read the file
-    let mut file = File::open("./src/outputs/results.txt").expect("Error while opening the file");
+    let mut file = File::open(cli.file).expect("Error while opening the file");
     let mut content = String::new();
     file.read_to_string(&mut content).expect("Error while reading the file");
 
     let mut occurences: HashMap<&str, usize> = HashMap::new();
 
-    const DEBUG: bool = false;
+    let debug: bool = cli.debug;
 
     for line in content.lines() {
-        if DEBUG {
+        if debug {
             println!("-------------------- line: {}", line);
         }
         for guy in GUYS_TO_SEARCH.iter() {
-            if DEBUG {
+            if debug {
                 println!("----- guy: {}", guy);
             }
             if find_approx_match(&line, guy, 2) {
-                if DEBUG {
+                if debug {
                     println!("{} is in the line", guy);
                 }
 
@@ -109,12 +134,12 @@ fn main() {
         }
 
         for town in TOWNS_TO_SEARCH.iter() {
-            if DEBUG {
+            if debug {
                 println!("----- town: {}", town);
             }
 
             if find_approx_match(&line, town, 2) {
-                if DEBUG {
+                if debug {
                     println!("{} is in the line", town);
                 }
 
@@ -128,8 +153,7 @@ fn main() {
 }
 
 #[cfg(test)]
-mod tests {
-}
+mod tests {}
 /*
  * End of file src/main.rs
  */
