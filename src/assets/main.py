@@ -2,7 +2,7 @@
 Script that extracts the text from the Word document and writes it in a text file.
 
 Author:
-    Tom Planche <tomplanche.fr>
+    Tom Planche <tomplanche.fr|github.com/tomPlanche>
 """
 from docx import Document
 import os
