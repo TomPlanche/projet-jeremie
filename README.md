@@ -2,13 +2,28 @@
 > This project is for Jérémie Arné. <br>
 > Its goal is to find the occurences of certain words or groups of words in a text file.
 
+## Requirements
+- [Rust](https://www.rust-lang.org/tools/install)
+- [Python](https://www.python.org/downloads/)
+
 ## Steps
-- I first read [Jérémie's transcription](./src/assets/Transcription.docx) (in `.docx`) and convert it to a `.txt` file using a trivial [python script](./src/assets/main.py).
+- I first read [Jérémie's transcription](./src/assets/Transcription.docx) (`.docx`) and convert it to a `.txt` file using a trivial [python script](./src/assets/main.py).
 - I then use a [Rust program](./src/main.rs) to find the occurrences of the words I'm looking for.
 
 ## Usage
+Each time you modift the `Transcription.docx` file, you need to run the python script to update the `Transcription.txt` file.
+```bash
+python ./src/assets/main.py
+```
+
+If you've never compiled the Rust program, you can do it with the following command:
+```bash
+cargo build --release
+```
+
+Then, you can run the program with the following command:
 ```text
-projet-jeremie [OPTIONS]
+./target/release/projet-jeremie [OPTIONS]
 
 Options:
   -f, --file-2-read <FILE_2_READ>    File to read Optional 'file' argument, default value is './src/outputs/results.txt' [default: ./src/outputs/results.txt]

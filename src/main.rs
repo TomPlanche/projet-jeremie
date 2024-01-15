@@ -59,17 +59,10 @@ struct SearchString {
     max_distance: usize,
 }
 
+type Match = Vec<String>;
 type Occurences<'a> = HashMap<
     &'a str,
-    (
-        u8,
-        Vec<
-            (
-                usize,
-                String
-            )
-        >
-    )
+    Match
 >;
 // Functions  =========================================================================== Functions
 ///
@@ -99,24 +92,24 @@ fn find_approx_match(
     line: &str,
     string: &str,
     max_distance: usize,
-) -> usize {
+) -> (usize, Vec<String>) {
     let words_iter = line.split_whitespace();
     let window_size = string.split_whitespace().count();
 
-    let mut matches: Vec<(usize, String)> = Vec::new();
+    let mut matches: (usize, Vec<String>) = (0, Vec::new());
 
+    // For each window of size `window_size` in the line
     for window in words_iter.collect::<Vec<&str>>().windows(window_size) {
         let window = window.join(" ");
         let distance = edit_distance(&window, string);
 
-        println!("window: {} | distance: {}", window, distance);
-
         if distance <= max_distance {
-            matches.push((distance, window));
+            matches.0 += 1;
+            matches.1.push(window);
         }
     }
 
-    matches.len()
+    matches
 }
 
 ///
@@ -171,10 +164,8 @@ fn main() {
     let strings = load_from_json(&PathBuf::from(strings_file));
 
     // Occurences:
-    // HashMap<&str, (u8, (usize, Vec<String>))>
-    // u8: number of total occurences
-    // usize: number of occurences in a line
-    // Vec<String>: the lines where the string was found
+    // HashMap<&str, Match>
+    // Vec<String>: the matches
     let mut occurences: Occurences = HashMap::new();
 
     for line in content.lines() {
@@ -183,21 +174,15 @@ fn main() {
         }
 
         for string in &strings {
-            let cpt = find_approx_match(line, &string.string, string.max_distance);
+            let (cpt, matches) = find_approx_match(line, &string.string, string.max_distance);
 
             if cpt > 0 {
                 if debug {
                     println!("{}: {}", string.string, cpt);
                 }
 
-                let (total_cpt, lines) = occurences.entry(&string.string).or_insert((0, Vec::new()));
-                *total_cpt += cpt as u8;
-                lines.push((cpt, line.to_string()));
-
-                if debug {
-                    println!("total_cpt: {} | lines: {:?}", total_cpt, lines);
-
-                }
+                let total_cpt = occurences.entry(&string.string).or_insert(Vec::new());
+                total_cpt.extend(matches);
             }
         }
     }
@@ -206,8 +191,8 @@ fn main() {
     if print_occurences {
         println!("{:#?}", occurences);
     } else {
-        for (string, (total_cpt, _)) in occurences {
-            println!("{}: {}", string, total_cpt);
+        for (string, matches) in occurences {
+            println!("{}: {}", string, matches.len());
         }
     }
 }
