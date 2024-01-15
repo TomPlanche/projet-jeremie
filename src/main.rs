@@ -118,9 +118,9 @@ fn find_approx_match(
 /// The json file must look like this:
 /// [
 ///   {
-//      "string": "Jehan de Luxembourg",
-//      "max_distance": 4
-//    },
+///      "string": "Jehan de Luxembourg",
+///      "max_distance": 4
+///    },
 /// ]
 ///
 /// ## Arguments
