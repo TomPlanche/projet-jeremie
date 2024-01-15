@@ -1,5 +1,5 @@
 # Search for occurrences.
-> This project is for Jérémie Arné. <br>
+> This project is for Jérémie Arné's research thesis of Master 1. <br>
 > Its goal is to find the occurences of certain words or groups of words in a text file.
 
 ## Steps
