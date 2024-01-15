@@ -109,6 +109,8 @@ fn find_approx_match(
         let window = window.join(" ");
         let distance = edit_distance(&window, string);
 
+        println!("window: {} | distance: {}", window, distance);
+
         if distance <= max_distance {
             matches.push((distance, window));
         }
@@ -219,6 +221,17 @@ mod tests {
         let text = super::load_from_json(&file_path);
 
         assert_eq!(text[0].string, "Jehan de Luxembourg");
+    }
+
+    #[test]
+    fn test_find_approx_match() {
+        let line = "Le vallet Jehan de Luxembourcq pris son arme.";
+        let string = "Jehan de Luxembourc";
+        let max_distance = 3;
+
+        // The edit distance between "Jehan de Luxembourg" and "Jehan de Luxembourc" is 1,
+        // so the function will return true because 1 <= 3.
+        assert_eq!(super::find_approx_match(line, string, max_distance), 1);
     }
 }
 /*
