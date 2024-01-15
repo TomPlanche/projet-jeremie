@@ -13,26 +13,16 @@
 use std::{
     fs::File,
     io::{Read},
+    collections::HashMap,
+    path::PathBuf,
 };
-use std::collections::HashMap;
 use edit_distance::edit_distance;
 use clap::{Parser};
+use serde::{Deserialize, Serialize};
 
 // Variables  =========================================================================== Variables
 const ROOT_DIR: &str = "/Users/tom_planche/Desktop/Prog/Rust/projet-jeremie";
 
-const GUYS_TO_SEARCH: [&str; 4] = [
-    "Jehan de Luxembourg",
-    "Duc de Bourgogne",
-    "le bastard de Thyan",
-    "Saint Pol",
-];
-
-const TOWNS_TO_SEARCH: [&str; 3] = [
-    "Tournay",
-    "Cambrai",
-    "Haynaut",
-];
 
 // Cli parser
 #[derive(Parser)]
@@ -44,17 +34,17 @@ struct Cli {
     /// File to read
     /// Optional 'file' argument, default value is './src/outputs/results.txt'.
     #[arg(short, long, default_value = "./src/outputs/results.txt")]
-    file: String,
+    file_2_read: String,
+
+    /// File that contains the strings to search.
+    /// Optional 'strings-file' argument, default value is './src/outputs/strings.txt'.
+    #[arg(short, long, default_value = "./src/assets/toFind.json")]
+    strings_file: String,
 
     /// Debug mode
     /// Optional 'debug' argument.
     #[arg(short, long)]
     debug: bool,
-
-    /// Max distance
-    /// Optional 'max-distance' argument, default value is 2.
-    #[arg(short, long, default_value = "2")]
-    max_distance: usize,
 
     /// Print the vector of occurences
     /// Optional 'print-occurences' argument.
@@ -62,6 +52,25 @@ struct Cli {
     print_occurences: bool,
 }
 
+// Types
+#[derive(Serialize, Deserialize, Debug)]
+struct SearchString {
+    string: String,
+    max_distance: usize,
+}
+
+type Occurences<'a> = HashMap<
+    &'a str,
+    (
+        u8,
+        Vec<
+            (
+                usize,
+                String
+            )
+        >
+    )
+>;
 // Functions  =========================================================================== Functions
 ///
 /// # find_approx_match
@@ -108,6 +117,37 @@ fn find_approx_match(
     matches.len()
 }
 
+///
+/// # load_from_json
+/// Load a json file and return a HashMap.
+/// The json file must look like this:
+/// [
+///   {
+//      "string": "Jehan de Luxembourg",
+//      "max_distance": 4
+//    },
+/// ]
+///
+/// ## Arguments
+/// * `file_path` - The path to the json file.
+///
+/// ## Returns
+/// A Vec of SearchString.
+fn load_from_json(
+    file_path: &PathBuf,
+) -> Vec<SearchString> {
+    // Open the file
+    let mut file = File::open(file_path).expect("The file could not be opened");
+
+    // Read the contents of the file into a string
+    let mut json_string = String::new();
+    file.read_to_string(&mut json_string).expect("The file could not be read");
+
+    // the json file is an array of objects
+    let json: Vec<SearchString> = serde_json::from_str(&json_string).expect("The json file is not valid");
+
+    json
+}
 // Main  ====================================================================================  Main
 fn main() {
     // Change the current directory
@@ -115,56 +155,47 @@ fn main() {
 
     // Cli
     let cli = Cli::parse();
-    let file = cli.file;
+    let file_2_read = cli.file_2_read;
     let debug = cli.debug;
-    let max_distance = cli.max_distance;
     let print_occurences = cli.print_occurences;
+    let strings_file = cli.strings_file;
 
-    // Read the file
-    let mut file = File::open(file).expect("Error while opening the file");
+    // Read the transcript
+    let mut file = File::open(file_2_read).expect("Error while opening the file");
     let mut content = String::new();
     file.read_to_string(&mut content).expect("Error while reading the file");
 
-    let mut occurences: HashMap<&str, (u8, (usize, Vec<String>))> = HashMap::new();
+    // Load the strings to search
+    let strings = load_from_json(&PathBuf::from(strings_file));
+
+    // Occurences:
+    // HashMap<&str, (u8, (usize, Vec<String>))>
+    // u8: number of total occurences
+    // usize: number of occurences in a line
+    // Vec<String>: the lines where the string was found
+    let mut occurences: Occurences = HashMap::new();
 
     for line in content.lines() {
         if debug {
             println!("-------------------- line: {}", line);
         }
-        for guy in GUYS_TO_SEARCH.iter() {
-            if debug {
-                println!("----- guy: {}", guy);
-            }
-            let matches = find_approx_match(&line, guy, max_distance);
 
-            if matches > 0 {
+        for string in &strings {
+            let cpt = find_approx_match(line, &string.string, string.max_distance);
+
+            if cpt > 0 {
                 if debug {
-                    println!("{} is in the line", guy);
+                    println!("{}: {}", string.string, cpt);
                 }
 
-                let occurence = occurences.entry(guy).or_insert((0, (0, Vec::new())));
-                occurence.0 += matches as u8;
-                occurence.1.0 = matches;
-                occurence.1.1.push(line.to_string());
-            }
-        }
+                let (total_cpt, lines) = occurences.entry(&string.string).or_insert((0, Vec::new()));
+                *total_cpt += cpt as u8;
+                lines.push((cpt, line.to_string()));
 
-        for town in TOWNS_TO_SEARCH.iter() {
-            if debug {
-                println!("----- town: {}", town);
-            }
-
-            let matches = find_approx_match(&line, town, max_distance);
-
-            if matches > 0 {
                 if debug {
-                    println!("{} is in the line", town);
-                }
+                    println!("total_cpt: {} | lines: {:?}", total_cpt, lines);
 
-                let occurence = occurences.entry(town).or_insert((0, (0, Vec::new())));
-                occurence.0 += matches as u8;
-                occurence.1.0 = matches;
-                occurence.1.1.push(line.to_string());
+                }
             }
         }
     }
@@ -173,14 +204,23 @@ fn main() {
     if print_occurences {
         println!("{:#?}", occurences);
     } else {
-        for (key, (cpt, _)) in occurences.iter() {
-            println!("{}: {}", key, cpt);
+        for (string, (total_cpt, _)) in occurences {
+            println!("{}: {}", string, total_cpt);
         }
     }
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use std::path::PathBuf;
+    #[test]
+    fn test_read_json() {
+        let file_path = PathBuf::from("./src/assets/toFind.json");
+        let text = super::load_from_json(&file_path);
+
+        assert_eq!(text[0].string, "Jehan de Luxembourg");
+    }
+}
 /*
  * End of file src/main.rs
  */

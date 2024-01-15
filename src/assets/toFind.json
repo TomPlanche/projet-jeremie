@@ -1,0 +1,30 @@
+[
+  {
+    "string": "Jehan de Luxembourg",
+    "max_distance": 4
+  },
+  {
+    "string": "Duc de Bourgogne",
+    "max_distance": 3
+  },
+  {
+    "string": "le bastard de Thyan",
+    "max_distance": 4
+  },
+  {
+    "string": "Saint Pol",
+    "max_distance": 2
+  },
+  {
+    "string": "Tournay",
+    "max_distance": 2
+  },
+  {
+    "string": "Cambrai",
+    "max_distance": 2
+  },
+  {
+    "string": "Haynaut",
+    "max_distance": 2
+  }
+]
