@@ -51,6 +51,15 @@ struct Cli {
     #[arg(short, long)]
     debug: bool,
 
+    /// Max distance
+    /// Optional 'max-distance' argument, default value is 2.
+    #[arg(short, long, default_value = "2")]
+    max_distance: usize,
+
+    /// Print the vector of occurences
+    /// Optional 'print-occurences' argument.
+    #[arg(short, long)]
+    print_occurences: bool,
 }
 
 // Functions  =========================================================================== Functions
@@ -81,22 +90,22 @@ fn find_approx_match(
     line: &str,
     string: &str,
     max_distance: usize,
-) -> bool {
-    let mut words_iter = line.split_whitespace();
+) -> usize {
+    let words_iter = line.split_whitespace();
     let window_size = string.split_whitespace().count();
 
-    let mut smallest_match: (usize, String) = (999, words_iter.by_ref().take(window_size).collect::<Vec<&str>>().join(" "));
+    let mut matches: Vec<(usize, String)> = Vec::new();
 
     for window in words_iter.collect::<Vec<&str>>().windows(window_size) {
         let window = window.join(" ");
         let distance = edit_distance(&window, string);
 
-        if distance < smallest_match.0 {
-            smallest_match = (distance, window);
+        if distance <= max_distance {
+            matches.push((distance, window));
         }
     }
 
-    smallest_match.0 <= max_distance
+    matches.len()
 }
 
 // Main  ====================================================================================  Main
@@ -104,16 +113,19 @@ fn main() {
     // Change the current directory
     std::env::set_current_dir(ROOT_DIR).expect("Error while changing the current directory");
 
+    // Cli
     let cli = Cli::parse();
+    let file = cli.file;
+    let debug = cli.debug;
+    let max_distance = cli.max_distance;
+    let print_occurences = cli.print_occurences;
 
     // Read the file
-    let mut file = File::open(cli.file).expect("Error while opening the file");
+    let mut file = File::open(file).expect("Error while opening the file");
     let mut content = String::new();
     file.read_to_string(&mut content).expect("Error while reading the file");
 
-    let mut occurences: HashMap<&str, usize> = HashMap::new();
-
-    let debug: bool = cli.debug;
+    let mut occurences: HashMap<&str, (u8, (usize, Vec<String>))> = HashMap::new();
 
     for line in content.lines() {
         if debug {
@@ -123,13 +135,17 @@ fn main() {
             if debug {
                 println!("----- guy: {}", guy);
             }
-            if find_approx_match(&line, guy, 2) {
+            let matches = find_approx_match(&line, guy, max_distance);
+
+            if matches > 0 {
                 if debug {
                     println!("{} is in the line", guy);
                 }
 
-                let occurence = occurences.entry(guy).or_insert(0);
-                *occurence += 1;
+                let occurence = occurences.entry(guy).or_insert((0, (0, Vec::new())));
+                occurence.0 += matches as u8;
+                occurence.1.0 = matches;
+                occurence.1.1.push(line.to_string());
             }
         }
 
@@ -138,18 +154,29 @@ fn main() {
                 println!("----- town: {}", town);
             }
 
-            if find_approx_match(&line, town, 2) {
+            let matches = find_approx_match(&line, town, max_distance);
+
+            if matches > 0 {
                 if debug {
                     println!("{} is in the line", town);
                 }
 
-                let occurence = occurences.entry(town).or_insert(0);
-                *occurence += 1;
+                let occurence = occurences.entry(town).or_insert((0, (0, Vec::new())));
+                occurence.0 += matches as u8;
+                occurence.1.0 = matches;
+                occurence.1.1.push(line.to_string());
             }
         }
     }
 
-    println!("occurences: {:?}", occurences);
+    println!("Occurences:");
+    if print_occurences {
+        println!("{:#?}", occurences);
+    } else {
+        for (key, (cpt, _)) in occurences.iter() {
+            println!("{}: {}", key, cpt);
+        }
+    }
 }
 
 #[cfg(test)]
