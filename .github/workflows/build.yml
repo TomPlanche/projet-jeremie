@@ -26,11 +26,12 @@ jobs:
       # I want to upload the artifact to the Release page
       # of the repository, but I don't know how to do it.
       - name: Upload to GitHub Releases
-        uses: actions/upload-release-asset@v1
+        uses: xresloader/upload-to-github-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.compile.outputs.BUILT_ARCHIVE }}
-          asset_name: ${{ steps.compile.outputs.BUILT_ARCHIVE }}
-          asset_content_type: application/octet-stream
+          file: |
+            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+          tags: true
+          draft: true
