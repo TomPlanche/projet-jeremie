@@ -1,4 +1,3 @@
-# .github/workflows/build.yml
 name: Build
 
 on:
@@ -24,3 +23,12 @@ jobs:
           path: |
             ${{ steps.compile.outputs.BUILT_ARCHIVE }}
             ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+      - name: Upload to GitHub Releases
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.compile.outputs.UPLOAD_URL }}
+          asset_path: ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+          asset_name: ${{ steps.compile.outputs.BUILT_ARCHIVE_NAME }}
+          asset_content_type: application/octet-stream
