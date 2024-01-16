@@ -23,12 +23,14 @@ jobs:
           path: |
             ${{ steps.compile.outputs.BUILT_ARCHIVE }}
             ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+      # I want to upload the artifact to the Release page
+      # of the repository, but I don't know how to do it.
       - name: Upload to GitHub Releases
-        uses: actions/upload-release-asset@v1.0.2
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.compile.outputs.UPLOAD_URL }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ steps.compile.outputs.BUILT_ARCHIVE }}
-          asset_name: ${{ steps.compile.outputs.BUILT_ARCHIVE_NAME }}
+          asset_name: ${{ steps.compile.outputs.BUILT_ARCHIVE }}
           asset_content_type: application/octet-stream
