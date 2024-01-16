@@ -25,13 +25,9 @@ jobs:
             ${{ steps.compile.outputs.BUILT_CHECKSUM }}
       # I want to upload the artifact to the Release page
       # of the repository, but I don't know how to do it.
-      - name: Upload to GitHub Releases
-        uses: xresloader/upload-to-github-release@v1
+      - name: Upload to release
+        uses: JasonEtco/upload-to-release@master
+        with:
+          args: ${{ steps.compile.outputs.BUILT_ARCHIVE }} application/zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          file: |
-            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
-            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
-          tags: true
-          draft: true
