@@ -1,6 +1,3 @@
-use clap::Parser;
-use edit_distance::edit_distance;
-use serde::{Deserialize, Serialize};
 ///
 /// # main.rs
 /// Little script to help Jeremie Arné for its project.
@@ -12,7 +9,10 @@ use serde::{Deserialize, Serialize};
 /// ## Author
 /// Tom Planche <tomplanche.fr|github.com/tomPlanche>
 // Imports  ==============================================================================  Imports
-use std::{collections::HashMap, fs::File, io::Read, path::PathBuf};
+use clap::Parser;
+use edit_distance::edit_distance;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs::File, io::Read, path::PathBuf, process::Command};
 
 // Variables  =========================================================================== Variables
 const ROOT_DIR: &str = "/Users/tom_planche/Desktop/Prog/Rust/projet-jeremie";
@@ -48,6 +48,11 @@ struct Cli {
     /// Optional 'output-occurences' argument.
     #[arg(short, long)]
     output_occurences: bool,
+
+    /// Preruns the transcription script
+    /// Optional 'run-transcription' argument.
+    #[arg(short, long)]
+    run_transcription: bool,
 }
 
 // Types
@@ -154,6 +159,26 @@ fn export_to_json(occurences: Occurences, file_path: &PathBuf) {
         .expect("The occurences could not be written to the file");
 }
 
+///
+/// # run_python_script
+/// Run the transcription script, written in python.
+///
+/// ## Arguments
+/// Nothing
+///
+/// ## Returns
+/// Nothing.
+fn run_python_script() {
+    let assets_path = PathBuf::from(ROOT_DIR).join("src/assets");
+    let python_script_path = assets_path.join("main.py");
+
+    let _ = Command::new("python3")
+        .arg(python_script_path)
+        .arg(assets_path)
+        .output()
+        .expect("Error while running the python script");
+}
+
 // Main  ====================================================================================  Main
 fn main() {
     // Change the current directory
@@ -166,6 +191,11 @@ fn main() {
     let print_occurences = cli.print_occurences;
     let strings_file = cli.strings_file;
     let output_occurences = cli.output_occurences;
+    let run_transcription = cli.run_transcription;
+
+    if run_transcription {
+        run_python_script();
+    }
 
     // Read the transcript
     let mut file = File::open(file_2_read).expect("Error while opening the file");
@@ -216,11 +246,13 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use super::{find_approx_match, load_from_json};
     use std::path::PathBuf;
+
     #[test]
     fn test_read_json() {
         let file_path = PathBuf::from("./src/assets/toFind.json");
-        let text = super::load_from_json(&file_path);
+        let text = load_from_json(&file_path);
 
         assert_eq!(text[0].string, "Jehan de Luxembourg");
     }
@@ -233,7 +265,10 @@ mod tests {
 
         // The edit distance between "Jehan de Luxembourg" and "Jehan de Luxembourc" is 1,
         // so the function will return true because 1 <= 3.
-        assert_eq!(super::find_approx_match(line, string, max_distance), 1);
+        assert_eq!(
+            find_approx_match(line, string, max_distance),
+            (1, vec!["Jehan de Luxembourcq".to_string()])
+        );
     }
 }
 /*
