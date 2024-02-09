@@ -30,6 +30,8 @@ Options:
   -s, --strings-file <STRINGS_FILE>  File that contains the strings to search. Optional 'strings-file' argument, default value is './src/outputs/strings.txt' [default: ./src/assets/toFind.json]
   -d, --debug                        Debug mode Optional 'debug' argument
   -p, --print-occurences             Print the vector of occurences Optional 'print-occurences' argument
+  -o, --output-occurences            Output the vector of occurences in a json file Optional 'output-occurences' argument.
+  -r, --run-transcription            Preruns the transcription script Optional 'run-transcription' argument
   -h, --help                         Print help
 ```
 ### JSON file
@@ -43,7 +45,7 @@ The JSON file for the strings to search must be an array of objects of the follo
 
 ## Algorithm
 The word `algorithm` is a bit of a stretch here.
-All I'm doing is reading the file line by line and for each line, I in the line all the windows of words I'm looking for.
+All I'm doing is reading the file line by line and for each line, I'm looking for the occurences of the words I'm looking for uing windows of the size of the word(s) I'm looking for.
 
 ### Example
 Sometimes, words are written with different spellings.

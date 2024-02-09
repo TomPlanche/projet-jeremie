@@ -8,6 +8,7 @@
 ///
 /// ## Author
 /// Tom Planche <tomplanche.fr|github.com/tomPlanche>
+///
 // Imports  ==============================================================================  Imports
 use clap::Parser;
 use edit_distance::edit_distance;
@@ -112,12 +113,14 @@ fn find_approx_match(line: &str, string: &str, max_distance: usize) -> (usize, V
 /// # load_from_json
 /// Load a json file and return a HashMap.
 /// The json file must look like this:
+/// ```
 /// [
 ///   {
 ///      "string": "Jehan de Luxembourg",
 ///      "max_distance": 4
 ///    },
 /// ]
+/// ```
 ///
 /// ## Arguments
 /// * `file_path` - The path to the json file.
@@ -162,6 +165,7 @@ fn export_to_json(occurences: Occurences, file_path: &PathBuf) {
 ///
 /// # run_python_script
 /// Run the transcription script, written in python.
+/// The python script takes the path to the assets folder as an argument.
 ///
 /// ## Arguments
 /// Nothing
@@ -246,13 +250,13 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{find_approx_match, load_from_json};
+    use super::{find_approx_match, load_from_json, SearchString};
     use std::path::PathBuf;
 
     #[test]
     fn test_read_json() {
         let file_path = PathBuf::from("./src/assets/toFind.json");
-        let text = load_from_json(&file_path);
+        let text: Vec<SearchString> = load_from_json(&file_path);
 
         assert_eq!(text[0].string, "Jehan de Luxembourg");
     }
