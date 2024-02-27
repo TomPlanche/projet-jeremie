@@ -8,7 +8,6 @@
 ///
 /// ## Author
 /// Tom Planche <tomplanche.fr|github.com/tomPlanche>
-///
 // Imports  ==============================================================================  Imports
 use clap::Parser;
 use edit_distance::edit_distance;
@@ -56,15 +55,17 @@ struct Cli {
     run_transcription: bool,
 }
 
-// Types
+// Struct(s)
 #[derive(Serialize, Deserialize, Debug)]
 struct SearchString {
     string: String,
     max_distance: usize,
 }
 
+// Type(s)
 type Match = Vec<String>;
 type Occurences<'a> = HashMap<&'a str, Match>;
+
 // Functions  =========================================================================== Functions
 ///
 /// # find_approx_match
@@ -88,25 +89,41 @@ type Occurences<'a> = HashMap<&'a str, Match>;
 /// * `max_distance` - The maximum distance between the string and the line.
 ///
 /// ## Returns
-/// The number of occurences.
+/// * `(usize, Vec<String>)` - The number of occurences and the occurences.
 fn find_approx_match(line: &str, string: &str, max_distance: usize) -> (usize, Vec<String>) {
     let words_iter = line.split_whitespace();
     let window_size = string.split_whitespace().count();
 
-    let mut matches: (usize, Vec<String>) = (0, Vec::new());
+    // let mut matches: (usize, Vec<String>) = (0, Vec::new());
 
-    // For each window of size `window_size` in the line
-    for window in words_iter.collect::<Vec<&str>>().windows(window_size) {
-        let window = window.join(" ");
-        let distance = edit_distance(&window, string);
+    // // For each window of size `window_size` in the line
+    // for window in words_iter.collect::<Vec<&str>>().windows(window_size) {
+    //     let window = window.join(" ");
+    //     let distance = edit_distance(&window, string);
 
-        if distance <= max_distance {
-            matches.0 += 1;
-            matches.1.push(window);
-        }
-    }
+    //     if distance <= max_distance {
+    //         matches.0 += 1;
+    //         matches.1.push(window);
+    //     }
+    // }
 
-    matches
+    // matches
+    //
+
+    words_iter.collect::<Vec<&str>>().windows(window_size).fold(
+        (0, Vec::new()),
+        |mut matches, window| {
+            let window = window.join(" ");
+            let distance = edit_distance(&window, string);
+
+            if distance <= max_distance {
+                matches.0 += 1;
+                matches.1.push(window);
+            }
+
+            matches
+        },
+    )
 }
 
 ///
@@ -126,7 +143,7 @@ fn find_approx_match(line: &str, string: &str, max_distance: usize) -> (usize, V
 /// * `file_path` - The path to the json file.
 ///
 /// ## Returns
-/// A Vec of SearchString.
+/// * `Vec<SearchString>` - The loaded json file typed as a Vec<SearchString>.
 fn load_from_json(file_path: &PathBuf) -> Vec<SearchString> {
     // Open the file
     let mut file = File::open(file_path).expect("The file could not be opened");
@@ -152,7 +169,7 @@ fn load_from_json(file_path: &PathBuf) -> Vec<SearchString> {
 /// * `file_path` - The path to the json file.
 ///
 /// ## Returns
-/// Nothing.
+/// * `()` - Nothing.
 fn export_to_json(occurences: Occurences, file_path: &PathBuf) {
     // Open the file
     let file = File::create(file_path).expect("The file could not be created");
@@ -171,7 +188,7 @@ fn export_to_json(occurences: Occurences, file_path: &PathBuf) {
 /// Nothing
 ///
 /// ## Returns
-/// Nothing.
+/// * `()` - Nothing.
 fn run_python_script() {
     let assets_path = PathBuf::from(ROOT_DIR).join("src/assets");
     let python_script_path = assets_path.join("main.py");
@@ -275,6 +292,7 @@ mod tests {
         );
     }
 }
+
 /*
  * End of file src/main.rs
  */
