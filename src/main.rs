@@ -11,8 +11,14 @@
 // Imports  ==============================================================================  Imports
 use clap::Parser;
 use edit_distance::edit_distance;
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs::File, io::Read, path::PathBuf, process::Command};
+use std::{
+    collections::HashMap,
+    env::{current_dir, set_current_dir},
+    fs::File,
+    io::Read,
+    path::PathBuf,
+    process::Command,
+};
 
 // Variables  =========================================================================== Variables
 const ROOT_DIR: &str = "/Users/tom_planche/Desktop/Prog/Rust/projet-jeremie";
@@ -55,16 +61,11 @@ struct Cli {
     run_transcription: bool,
 }
 
-// Struct(s)
-#[derive(Serialize, Deserialize, Debug)]
-struct SearchString {
-    string: String,
-    max_distance: usize,
-}
-
 // Type(s)
 type Match = Vec<String>;
 type Occurences<'a> = HashMap<&'a str, Match>;
+
+pub type Strings2Search = HashMap<String, u16>;
 
 // Functions  =========================================================================== Functions
 ///
@@ -84,37 +85,21 @@ type Occurences<'a> = HashMap<&'a str, Match>;
 /// ```
 ///
 /// ## Arguments
-/// * `line` - The line to search in.
-/// * `string` - The string to search.
-/// * `max_distance` - The maximum distance between the string and the line.
+/// * `line` - `&str` - The line to search.
+/// * `string` - `&str` - The string to search.
+/// * `max_distance` - `u16` - The maximum distance between the string and the line.
 ///
 /// ## Returns
-/// * `(usize, Vec<String>)` - The number of occurences and the occurences.
-fn find_approx_match(line: &str, string: &str, max_distance: usize) -> (usize, Vec<String>) {
+/// * `(u16, Vec<String>` - The number of occurences and the occurences.
+fn find_approx_match(line: &str, string: &str, max_distance: u16) -> (u16, Vec<String>) {
     let words_iter = line.split_whitespace();
     let window_size = string.split_whitespace().count();
 
-    // let mut matches: (usize, Vec<String>) = (0, Vec::new());
-
-    // // For each window of size `window_size` in the line
-    // for window in words_iter.collect::<Vec<&str>>().windows(window_size) {
-    //     let window = window.join(" ");
-    //     let distance = edit_distance(&window, string);
-
-    //     if distance <= max_distance {
-    //         matches.0 += 1;
-    //         matches.1.push(window);
-    //     }
-    // }
-
-    // matches
-    //
-
     words_iter.collect::<Vec<&str>>().windows(window_size).fold(
-        (0, Vec::new()),
+        (0u16, Vec::new()),
         |mut matches, window| {
             let window = window.join(" ");
-            let distance = edit_distance(&window, string);
+            let distance = edit_distance(&window, string) as u16;
 
             if distance <= max_distance {
                 matches.0 += 1;
@@ -130,21 +115,18 @@ fn find_approx_match(line: &str, string: &str, max_distance: usize) -> (usize, V
 /// # load_from_json
 /// Load a json file and return a HashMap.
 /// The json file must look like this:
-/// ```
-/// [
-///   {
-///      "string": "Jehan de Luxembourg",
-///      "max_distance": 4
-///    },
-/// ]
+/// ```json
+/// {
+///   "test_2_search": 2 // where the number is the allowed 'errors' possible for that word.
+/// }
 /// ```
 ///
 /// ## Arguments
-/// * `file_path` - The path to the json file.
+/// * `file_path` - `&PathBuf` - The path to the json file.
 ///
 /// ## Returns
-/// * `Vec<SearchString>` - The loaded json file typed as a Vec<SearchString>.
-fn load_from_json(file_path: &PathBuf) -> Vec<SearchString> {
+/// * `Strings2Search` - The loaded json file typed as a `Strings2Search`
+fn load_from_json(file_path: &PathBuf) -> Strings2Search {
     // Open the file
     let mut file = File::open(file_path).expect("The file could not be opened");
 
@@ -153,11 +135,7 @@ fn load_from_json(file_path: &PathBuf) -> Vec<SearchString> {
     file.read_to_string(&mut json_string)
         .expect("The file could not be read");
 
-    // the json file is an array of objects
-    let json: Vec<SearchString> =
-        serde_json::from_str(&json_string).expect("The json file is not valid");
-
-    json
+    serde_json::from_str(&json_string).expect("The json file is not valid")
 }
 
 ///
@@ -165,11 +143,8 @@ fn load_from_json(file_path: &PathBuf) -> Vec<SearchString> {
 /// Export the final result to a json file.
 ///
 /// ## Arguments
-/// * `occurences` - The occurences to export.
-/// * `file_path` - The path to the json file.
-///
-/// ## Returns
-/// * `()` - Nothing.
+/// * `occurences` - `Occurences` - The occurences to export.
+/// * `file_path` - `&PathBuf` - The path to the file to create.
 fn export_to_json(occurences: Occurences, file_path: &PathBuf) {
     // Open the file
     let file = File::create(file_path).expect("The file could not be created");
@@ -183,12 +158,6 @@ fn export_to_json(occurences: Occurences, file_path: &PathBuf) {
 /// # run_python_script
 /// Run the transcription script, written in python.
 /// The python script takes the path to the assets folder as an argument.
-///
-/// ## Arguments
-/// Nothing
-///
-/// ## Returns
-/// * `()` - Nothing.
 fn run_python_script() {
     let assets_path = PathBuf::from(ROOT_DIR).join("src/assets");
     let python_script_path = assets_path.join("main.py");
@@ -202,8 +171,10 @@ fn run_python_script() {
 
 // Main  ====================================================================================  Main
 fn main() {
+    let caller = current_dir().unwrap();
+
     // Change the current directory
-    std::env::set_current_dir(ROOT_DIR).expect("Error while changing the current directory");
+    set_current_dir(caller).expect("Error while changing the current directory");
 
     // Cli
     let cli = Cli::parse();
@@ -225,11 +196,8 @@ fn main() {
         .expect("Error while reading the file");
 
     // Load the strings to search
-    let strings = load_from_json(&PathBuf::from(strings_file));
+    let strings: Strings2Search = load_from_json(&PathBuf::from(strings_file));
 
-    // Occurences:
-    // HashMap<&str, Match>
-    // Vec<String>: the matches
     let mut occurences: Occurences = HashMap::new();
 
     for line in content.lines() {
@@ -238,14 +206,14 @@ fn main() {
         }
 
         for string in &strings {
-            let (cpt, matches) = find_approx_match(line, &string.string, string.max_distance);
+            let (cpt, matches) = find_approx_match(line, string.0, *string.1);
 
             if cpt > 0 {
                 if debug {
-                    println!("{}: {}", string.string, cpt);
+                    println!("{}: {}", string.0, cpt);
                 }
 
-                let total_cpt = occurences.entry(&string.string).or_insert(Vec::new());
+                let total_cpt = occurences.entry(&string.0).or_insert(Vec::new());
                 total_cpt.extend(matches);
             }
         }
@@ -267,15 +235,16 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{find_approx_match, load_from_json, SearchString};
+    use super::Strings2Search;
+    use super::{find_approx_match, load_from_json};
     use std::path::PathBuf;
 
     #[test]
     fn test_read_json() {
         let file_path = PathBuf::from("./src/assets/toFind.json");
-        let text: Vec<SearchString> = load_from_json(&file_path);
+        let text: Strings2Search = load_from_json(&file_path);
 
-        assert_eq!(text[0].string, "Jehan de Luxembourg");
+        assert_eq!(text.get("Jehan de Luxembourg"), Some(&4u16));
     }
 
     #[test]

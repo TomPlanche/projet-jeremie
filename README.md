@@ -1,57 +1,91 @@
 # Search for occurrences.
-> This project is for Jérémie Arné's research thesis of Master 1. <br>
+
+> This project is for _*Jérémie Arné*_'s research thesis of Master 1. <br>
 > Its goal is to find the occurences of certain words or groups of words in a text file.
 
 ## Requirements
+
+You'll need these two languages installed and ready.
+
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Python](https://www.python.org/downloads/)
 
 ## Steps
+
 - I first read [Jérémie's transcription](./src/assets/Transcription.docx) (`.docx`) and convert it to a `.txt` file using a trivial [python script](./src/assets/main.py).
 - I then use a [Rust program](./src/main.rs) to find the occurrences of the words I'm looking for.
 
 ## Usage
-Each time you modift the `Transcription.docx` file, you need to run the python script to update the `Transcription.txt` file.
-```bash
-python ./src/assets/main.py
-```
 
-If you've never compiled the Rust program, you can do it with the following command:
+### Before running the script.
+
+In order to make it easy to use for people that are not familiar with code and a terminal (_Jérémie_), I automated amost all the process.
+
+In order to use it, you'll just need to:
+
+- Make sure the transcription file is in the `./src/assets/` folder.
+- (Create or) fill the `src/assets/toFind.json` file.
+  It should have the following structure:
+
+  ```json
+  {
+    "the_word_to_look_for": 4, // This number is the maximum errors possible in that word.
+    "another_word or expression": 5
+  }
+  ```
+
+### Compiling
+
+You'll need to do this only _*ONCE*_.
+
 ```bash
 cargo build --release
 ```
 
-Then, you can run the program with the following command:
-```text
-./target/release/projet-jeremie [OPTIONS]
+### Running the script
 
-Options:
-  -f, --file-2-read <FILE_2_READ>    File to read Optional 'file' argument, default value is './src/outputs/results.txt' [default: ./src/outputs/results.txt]
-  -s, --strings-file <STRINGS_FILE>  File that contains the strings to search. Optional 'strings-file' argument, default value is './src/outputs/strings.txt' [default: ./src/assets/toFind.json]
-  -d, --debug                        Debug mode Optional 'debug' argument
-  -p, --print-occurences             Print the vector of occurences Optional 'print-occurences' argument
-  -o, --output-occurences            Output the vector of occurences in a json file Optional 'output-occurences' argument.
-  -r, --run-transcription            Preruns the transcription script Optional 'run-transcription' argument
-  -h, --help                         Print help
+> The script takes sevral arguments that can be found using this code:
+>
+> ```
+> ./target/release/projet-jeremie -h
+> ```
+
+[After making sure all configuration files are OK](#Before running the script.), the easiest way to get things working is via this command:
+
 ```
-### JSON file
-The JSON file for the strings to search must be an array of objects of the following format:
+./target/release/projet-jeremie -ro
+```
+
+This command will:
+
+- `-r` **R**un the python script to convert the `.docx` transcription file into a `.txt` one.
+- `o` Will **o**utput the results in the `src/outputs/occurences.json` file.
+
+## JSON file
+
+The JSON file for the strings to search must an object of `"string": number` like so:
+
 ```json
 {
-  "string": "string to search",
-  "max_distance": 4 // arbitrary value
+  "Jehan de Luxembourg": 4,
+  "Duc de Bourgogne": 3
 }
 ```
 
+The numbers are here to precise the maximum number of errors for a given string.
+
 ## Algorithm
+
 The word `algorithm` is a bit of a stretch here.
 All I'm doing is reading the file line by line and for each line, I'm looking for the occurences of the words I'm looking for uing windows of the size of the word(s) I'm looking for.
 
 ### Example
+
 Sometimes, words are written with different spellings.
 For example, `Jehan de Luxembourg` can be found as `Jehan de Luxembourcq` or `Jehan de Luxembouc`.
 
 In the line `Le vallet Jehan de Luxembourcq pris son arme.`, given the `Jehan de Luxembourg` search, the looking window will be of size 3. And the program will browse the line like this:
+
 - Le vallet Jehan | distance: 16
 - vallet Jehan de | distance: 16
 - Jehan de Luxembourcq | distance: 1
