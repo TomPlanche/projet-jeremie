@@ -50,7 +50,7 @@ cargo build --release
 > ./target/release/projet-jeremie -h
 > ```
 
-[After making sure all configuration files are OK](#Before running the script.), the easiest way to get things working is via this command:
+[After making sure all configuration files are OK](#before-running-the-script), the easiest way to get things working is via this command:
 
 ```
 ./target/release/projet-jeremie -ro

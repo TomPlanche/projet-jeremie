@@ -91,7 +91,7 @@ pub type Strings2Search = HashMap<String, u16>;
 ///
 /// ## Returns
 /// * `(u16, Vec<String>` - The number of occurences and the occurences.
-fn find_approx_match(line: &str, string: &str, max_distance: u16) -> (u16, Vec<String>) {
+fn find_approx_match(line: &str, string: &str, max_distance: &u16) -> (u16, Vec<String>) {
     let words_iter = line.split_whitespace();
     let window_size = string.split_whitespace().count();
 
@@ -101,7 +101,7 @@ fn find_approx_match(line: &str, string: &str, max_distance: u16) -> (u16, Vec<S
             let window = window.join(" ");
             let distance = edit_distance(&window, string) as u16;
 
-            if distance <= max_distance {
+            if distance <= *max_distance {
                 matches.0 += 1;
                 matches.1.push(window);
             }
@@ -126,7 +126,7 @@ fn find_approx_match(line: &str, string: &str, max_distance: u16) -> (u16, Vec<S
 ///
 /// ## Returns
 /// * `Strings2Search` - The loaded json file typed as a `Strings2Search`
-fn load_from_json(file_path: &PathBuf) -> Strings2Search {
+fn load_strings_to_search(file_path: &PathBuf) -> Strings2Search {
     // Open the file
     let mut file = File::open(file_path).expect("The file could not be opened");
 
@@ -196,7 +196,7 @@ fn main() {
         .expect("Error while reading the file");
 
     // Load the strings to search
-    let strings: Strings2Search = load_from_json(&PathBuf::from(strings_file));
+    let strings: Strings2Search = load_strings_to_search(&PathBuf::from(strings_file));
 
     let mut occurences: Occurences = HashMap::new();
 
@@ -206,14 +206,14 @@ fn main() {
         }
 
         for string in &strings {
-            let (cpt, matches) = find_approx_match(line, string.0, *string.1);
+            let (cpt, matches) = find_approx_match(line, string.0, string.1);
 
             if cpt > 0 {
                 if debug {
                     println!("{}: {}", string.0, cpt);
                 }
 
-                let total_cpt = occurences.entry(&string.0).or_insert(Vec::new());
+                let total_cpt = occurences.entry(string.0).or_insert(Vec::new());
                 total_cpt.extend(matches);
             }
         }
@@ -236,13 +236,13 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::Strings2Search;
-    use super::{find_approx_match, load_from_json};
+    use super::{find_approx_match, load_strings_to_search};
     use std::path::PathBuf;
 
     #[test]
     fn test_read_json() {
         let file_path = PathBuf::from("./src/assets/toFind.json");
-        let text: Strings2Search = load_from_json(&file_path);
+        let text: Strings2Search = load_strings_to_search(&file_path);
 
         assert_eq!(text.get("Jehan de Luxembourg"), Some(&4u16));
     }
@@ -256,7 +256,7 @@ mod tests {
         // The edit distance between "Jehan de Luxembourg" and "Jehan de Luxembourc" is 1,
         // so the function will return true because 1 <= 3.
         assert_eq!(
-            find_approx_match(line, string, max_distance),
+            find_approx_match(line, string, &max_distance),
             (1, vec!["Jehan de Luxembourcq".to_string()])
         );
     }
