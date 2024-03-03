@@ -17,7 +17,7 @@ You'll need these two languages installed and ready.
 
 ## Usage
 
-### Before running the script.
+### Before running the script
 
 In order to make it easy to use for people that are not familiar with code and a terminal (_Jérémie_), I automated amost all the process.
 
@@ -59,7 +59,7 @@ cargo build --release
 This command will:
 
 - `-r` **R**un the python script to convert the `.docx` transcription file into a `.txt` one.
-- `o` Will **o**utput the results in the `src/outputs/occurences.json` file.
+- `-o` Will **o**utput the results in the `src/outputs/occurences.json` file.
 
 ## JSON file
 
