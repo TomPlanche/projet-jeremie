@@ -67,6 +67,18 @@ type Occurences<'a> = HashMap<&'a str, Match>;
 
 pub type Strings2Search = HashMap<String, u16>;
 
+trait RemovePunctuation {
+    fn remove_punctuation(&self) -> String;
+}
+
+impl RemovePunctuation for String {
+    fn remove_punctuation(&self) -> String {
+        self.chars()
+            .filter(|c| !c.is_ascii_punctuation())
+            .collect::<String>()
+    }
+}
+
 // Functions  =========================================================================== Functions
 ///
 /// # find_approx_match
@@ -98,7 +110,11 @@ fn find_approx_match(line: &str, string: &str, max_distance: &u16) -> (u16, Vec<
     words_iter.collect::<Vec<&str>>().windows(window_size).fold(
         (0u16, Vec::new()),
         |mut matches, window| {
-            let window = window.join(" ");
+            let window = window
+                .iter()
+                .map(|word| word.to_string().remove_punctuation())
+                .collect::<Vec<String>>()
+                .join(" ");
             let distance = edit_distance(&window, string) as u16;
 
             if distance <= *max_distance {
@@ -249,15 +265,22 @@ mod tests {
 
     #[test]
     fn test_find_approx_match() {
-        let line = "Le vallet Jehan de Luxembourcq pris son arme.";
+        let line =
+            "Le vallet Jehan de Luxembourcq pris son arme.\n Il s'appelait Jehan de Luxembourg.";
         let string = "Jehan de Luxembourc";
         let max_distance = 3;
 
         // The edit distance between "Jehan de Luxembourg" and "Jehan de Luxembourc" is 1,
-        // so the function will return true because 1 <= 3.
+        // so the function will return [(1, ["Jehan de Luxembourcq"])] as the result.
         assert_eq!(
             find_approx_match(line, string, &max_distance),
-            (1, vec!["Jehan de Luxembourcq".to_string()])
+            (
+                2,
+                vec![
+                    "Jehan de Luxembourcq".to_string(),
+                    "Jehan de Luxembourg".to_string()
+                ]
+            )
         );
     }
 }
