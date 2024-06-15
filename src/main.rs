@@ -21,7 +21,9 @@ use std::{
 };
 
 // Variables  =========================================================================== Variables
-// Cli parser
+///
+/// Cli struct
+/// This struct is made for the clap cli options
 #[derive(Parser)]
 #[command(
     about = "Small script to find the occurrences of terms, taking into account spelling variations in medieval texts."
@@ -42,8 +44,8 @@ struct Cli {
 
     /// Debug mode
     /// Optional 'debug' argument.
-    #[arg(short, long)]
-    debug: bool,
+    // #[arg(short, long)]
+    // debug: bool,
 
     /// Print the vector of occurences
     /// Optional 'print-occurences' argument.
@@ -63,14 +65,14 @@ struct Cli {
 
 // Types
 type Match = Vec<String>;
-type Occurences<'a> = HashMap<&'a str, Match>;
+type Occurences<'lifetime> = HashMap<&'lifetime str, Match>;
 
-pub type Strings2Search = HashMap<String, u16>;
+pub type Strings2Search = HashMap<String, usize>;
 
 // Implementations
 trait RemovePunctuation {
     ///
-    /// # remove_punctuation
+    /// # `remove_punctuation`
     /// Remove the punctuation from a string.
     ///
     /// ## Example
@@ -91,7 +93,7 @@ impl RemovePunctuation for String {
 
 // Functions  =========================================================================== Functions
 ///
-/// # find_approx_match
+/// # `find_approx_match`
 /// Find the occurences of a string in a line.
 /// The string can be approximated.
 ///
@@ -109,25 +111,25 @@ impl RemovePunctuation for String {
 /// ## Arguments
 /// * `line` - `&str` - The line to search.
 /// * `string` - `&str` - The string to search.
-/// * `max_distance` - `u16` - The maximum distance between the string and the line.
+/// * `max_distance` - `usize` - The maximum distance between the string and the line.
 ///
 /// ## Returns
-/// * `(u16, Vec<String>` - The number of occurences and the occurences.
-fn find_approx_match(line: &str, string: &str, max_distance: &u16) -> (u16, Vec<String>) {
+/// * `(usize, Vec<String>` - The number of occurences and the occurences.
+fn find_approx_match(line: &str, string: &str, max_distance: usize) -> (usize, Vec<String>) {
     let words_iter = line.split_whitespace();
     let window_size = string.split_whitespace().count();
 
     words_iter.collect::<Vec<&str>>().windows(window_size).fold(
-        (0u16, Vec::new()), // (number of matches, matches)
+        (0_usize, Vec::new()), // (number of matches, matches)
         |mut matches, window| {
             let window = window
                 .iter()
-                .map(|word| word.to_string().remove_punctuation())
+                .map(|word| (*word).to_string().remove_punctuation())
                 .collect::<Vec<String>>()
                 .join(" ");
-            let distance = edit_distance(&window, string) as u16;
+            let distance = edit_distance(&window, string);
 
-            if distance <= *max_distance {
+            if distance <= max_distance {
                 matches.0 += 1;
                 matches.1.push(window);
             }
@@ -138,8 +140,8 @@ fn find_approx_match(line: &str, string: &str, max_distance: &u16) -> (u16, Vec<
 }
 
 ///
-/// # load_from_json
-/// Load a json file and return a HashMap.
+/// # `load_from_json`
+/// Load a json file and return a `HashMap`.
 /// The json file must look like this:
 /// ```json
 /// {
@@ -165,13 +167,13 @@ fn load_strings_to_search(file_path: &PathBuf) -> Strings2Search {
 }
 
 ///
-/// # export_to_json
+/// # `export_to_json`
 /// Export the final result to a json file.
 ///
 /// ## Arguments
 /// * `occurences` - `Occurences` - The occurences to export.
 /// * `file_path` - `&PathBuf` - The path to the file to create.
-fn export_to_json(occurences: Occurences, file_path: &PathBuf) {
+fn export_to_json(occurences: &Occurences, file_path: &PathBuf) {
     // Open the file
     let file = File::create(file_path).expect("The file could not be created");
 
@@ -181,7 +183,7 @@ fn export_to_json(occurences: Occurences, file_path: &PathBuf) {
 }
 
 ///
-/// # run_python_script
+/// # `run_python_script`
 /// Run the transcription script, written in python.
 /// The python script takes the path to the assets folder as an argument.
 fn run_python_script() {
@@ -205,7 +207,7 @@ fn main() {
     // Cli
     let cli = Cli::parse();
     let file_2_read = cli.file_2_read;
-    let debug = cli.debug;
+    // let debug = cli.debug;
     let print_occurences = cli.print_occurences;
     let strings_file = cli.strings_file;
     let output_occurences = cli.output_occurences;
@@ -221,7 +223,7 @@ fn main() {
         return;
     }
 
-    println!("Reading the file: {}", file_2_read);
+    println!("Reading the file: {file_2_read}");
 
     // Read the transcript
     let mut file = File::open(file_2_read).expect("Error while opening the file");
@@ -235,17 +237,17 @@ fn main() {
     let mut occurences: Occurences = HashMap::new();
 
     for line in content.lines() {
-        if debug {
-            println!("-------------------- line: {}", line);
-        }
+        // if debug {
+        //     println!("-------------------- line: {}", line);
+        // }
 
         for string in &strings {
-            let (cpt, matches) = find_approx_match(line, string.0, string.1);
+            let (cpt, matches) = find_approx_match(line, string.0, *string.1);
 
             if cpt > 0 {
-                if debug {
-                    println!("{}: {}", string.0, cpt);
-                }
+                // if debug {
+                //     println!("{}: {}", string.0, cpt);
+                // }
 
                 let total_cpt = occurences.entry(string.0).or_default();
                 total_cpt.extend(matches);
@@ -255,7 +257,7 @@ fn main() {
 
     if print_occurences {
         println!("Occurences:");
-        println!("{:#?}", occurences);
+        println!("{occurences:#?}");
     } else {
         for (string, matches) in &occurences {
             println!("{}: {}", string, matches.len());
@@ -263,7 +265,7 @@ fn main() {
     }
 
     if output_occurences {
-        export_to_json(occurences, &PathBuf::from("./src/outputs/occurences.json"));
+        export_to_json(&occurences, &PathBuf::from("./src/outputs/occurences.json"));
     }
 }
 
@@ -280,7 +282,7 @@ mod tests {
         let file_path = PathBuf::from("./src/assets/toFind.json");
         let text: Strings2Search = load_strings_to_search(&file_path);
 
-        assert_eq!(text.get("Jehan de Luxembourg"), Some(&3u16));
+        assert_eq!(text.get("Jehan de Luxembourg"), Some(&3usize));
     }
 
     #[test]
@@ -301,7 +303,7 @@ mod tests {
         // The edit distance between "Jehan de Luxembourg" and "Jehan de Luxembourc" is 1,
         // so the function will return [(1, ["Jehan de Luxembourcq"])] as the result.
         assert_eq!(
-            find_approx_match(line, string, &max_distance),
+            find_approx_match(line, string, max_distance),
             (
                 2,
                 vec![
