@@ -21,11 +21,11 @@ use std::{
 };
 
 // Variables  =========================================================================== Variables
-const ROOT_DIR: &str = "/Users/tom_planche/Desktop/Prog/Rust/projet-jeremie";
-
 // Cli parser
 #[derive(Parser)]
-#[command(about = "Small script that will seek the occurences of the needed strings in a file.")]
+#[command(
+    about = "Small script to find the occurrences of terms, taking into account spelling variations in medieval texts."
+)]
 #[command(author = "Tom Planche <tomplanche.fr|github.com/tomPlanche>")]
 #[command(help_template = "{about}\nMade by: {author}\n\nUSAGE:\n{usage}\n\n{all-args}\n")]
 #[command(name = "find-occurences")]
@@ -61,13 +61,23 @@ struct Cli {
     run_transcription: bool,
 }
 
-// Type(s)
+// Types
 type Match = Vec<String>;
 type Occurences<'a> = HashMap<&'a str, Match>;
 
 pub type Strings2Search = HashMap<String, u16>;
 
+// Implementations
 trait RemovePunctuation {
+    ///
+    /// # remove_punctuation
+    /// Remove the punctuation from a string.
+    ///
+    /// ## Example
+    /// ```
+    /// let string = "Hello, World!";
+    /// assert_eq!(string.remove_punctuation(), "Hello World");
+    /// ```
     fn remove_punctuation(&self) -> String;
 }
 
@@ -108,7 +118,7 @@ fn find_approx_match(line: &str, string: &str, max_distance: &u16) -> (u16, Vec<
     let window_size = string.split_whitespace().count();
 
     words_iter.collect::<Vec<&str>>().windows(window_size).fold(
-        (0u16, Vec::new()),
+        (0u16, Vec::new()), // (number of matches, matches)
         |mut matches, window| {
             let window = window
                 .iter()
@@ -175,7 +185,7 @@ fn export_to_json(occurences: Occurences, file_path: &PathBuf) {
 /// Run the transcription script, written in python.
 /// The python script takes the path to the assets folder as an argument.
 fn run_python_script() {
-    let assets_path = PathBuf::from(ROOT_DIR).join("src/assets");
+    let assets_path = PathBuf::from("./src/assets");
     let python_script_path = assets_path.join("main.py");
 
     let _ = Command::new("python3")
@@ -205,6 +215,14 @@ fn main() {
         run_python_script();
     }
 
+    // Check if the file was provided
+    if file_2_read.is_empty() {
+        eprintln!("The file to read was not provided");
+        return;
+    }
+
+    println!("Reading the file: {}", file_2_read);
+
     // Read the transcript
     let mut file = File::open(file_2_read).expect("Error while opening the file");
     let mut content = String::new();
@@ -229,7 +247,7 @@ fn main() {
                     println!("{}: {}", string.0, cpt);
                 }
 
-                let total_cpt = occurences.entry(string.0).or_insert(Vec::new());
+                let total_cpt = occurences.entry(string.0).or_default();
                 total_cpt.extend(matches);
             }
         }
@@ -251,6 +269,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use crate::RemovePunctuation;
+
     use super::Strings2Search;
     use super::{find_approx_match, load_strings_to_search};
     use std::path::PathBuf;
@@ -260,7 +280,15 @@ mod tests {
         let file_path = PathBuf::from("./src/assets/toFind.json");
         let text: Strings2Search = load_strings_to_search(&file_path);
 
-        assert_eq!(text.get("Jehan de Luxembourg"), Some(&4u16));
+        assert_eq!(text.get("Jehan de Luxembourg"), Some(&3u16));
+    }
+
+    #[test]
+    fn test_remove_punctuation() {
+        let line = "He said: \"Hello, world!\"";
+        let result = "He said Hello world";
+
+        assert_eq!(line.to_string().remove_punctuation(), result);
     }
 
     #[test]

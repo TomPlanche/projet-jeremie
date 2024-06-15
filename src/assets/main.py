@@ -24,6 +24,10 @@ if len(sys.argv) > 1:
         if paragraphe.text != '' and paragraphe.text != '\n'
     ]
 
+    # check if the file exists
+    if not os.path.exists('../outputs'):
+      os.mkdir('../outputs')
+
     with open('../outputs/results.txt', 'w') as f:
       f.write('\n'.join(all_text))
   else:
