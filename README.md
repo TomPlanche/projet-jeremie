@@ -1,7 +1,6 @@
 # Search for occurrences.
 
-> This project is for _*Jérémie Arné*_'s research thesis of Master 1. <br>
-> Its goal is to find the occurences of certain words or groups of words in a text file.
+> Research tool repository created for Jérémie Arné's Master's thesis that analyzes medieval texts. It combines Python and Rust to find word occurrences while accounting for historical spelling variations. The system is designed to be user-friendly for non-technical users, with configurable search terms and error tolerance
 
 ## Requirements
 
